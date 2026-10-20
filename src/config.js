@@ -1,45 +1,93 @@
 // -----------------------------------------------------------------------------
-// Integration configuration.
-//
-// The configuration is filled in by the user in Gladys, from the `config_schema`
-// declared in `gladys-assistant-integration.json`. The SDK fetches it for you
-// (`gladys.getConfig()`) and notifies you of every change through
-// `gladys.onConfigUpdated()`.
-//
-// This module only provides defaults and normalizes the received object, so the
-// rest of the code never has to deal with `undefined`.
+// Integration configuration: defaults (they mirror the `default` values of the
+// manifest `config_schema`, see test/manifest.test.js) and normalization, so
+// the rest of the code never deals with strings, blanks or `undefined`.
 // -----------------------------------------------------------------------------
 
-// Defaults: they MUST stay consistent with the `default` values declared in the
-// `config_schema` of the manifest.
+export const LANGUAGES = ['en', 'fr', 'de', 'es'];
+
+// Refresh intervals offered in the configuration, in seconds. Headscale is a
+// local server and one reading is one or two requests: 30 s is cheap.
+export const POLL_INTERVALS = ['30', '60', '120', '300'];
+
 export const DEFAULT_CONFIG = {
-  latitude: 48.8566, // Paris
-  longitude: 2.3522,
-  unit: 'celsius', // 'celsius' | 'fahrenheit'
-  // Seconds between two reads of the polled sensors. Gladys polls at most once
-  // a minute: slower intervals are applied by skipping polls (see
-  // createPoller in src/devices/index.js).
-  poll_frequency: 300,
-  // Reserved key (NOT in config_schema): because the manifest declares both
-  // 'local' and 'cloud' in its `transports` field, Gladys shows a standard
-  // "Prefer the local connection" toggle and sends the user's choice here.
-  // Read-only for the integration; defaults to true.
-  GLADYS_PREFER_LOCAL: true,
+  url: '',
+  api_key: '',
+  insecure: false,
+  users: '',
+  publish_ips: false,
+  poll_interval: '60',
+  language: 'fr',
 };
 
+// listen_addr of the Headscale sample configuration.
+export const DEFAULT_PORT = 8080;
+
 /**
- * Merge the user config with the defaults.
- * @param {Record<string, unknown>} raw config returned by the SDK
+ * Parse the address of the Headscale server: a bare host or IP
+ * (`192.0.2.10`, http on port 8080 then), `host:port`, or a URL
+ * (`https://headscale.example.com`, port 443). The path is dropped.
+ * @param {unknown} raw
+ * @returns {string|null} `http(s)://host:port`, null when unusable
+ */
+export function parseServerUrl(raw) {
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  const text = raw.trim();
+  if (!text) {
+    return null;
+  }
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `http://${text}`;
+  let url;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    return null;
+  }
+  if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) {
+    return null;
+  }
+  // Credentials in the address would end up in the logs.
+  if (url.username || url.password) {
+    return null;
+  }
+  // A bare http address means Headscale itself, on 8080; https:// without a
+  // port is a reverse proxy, on 443.
+  const explicitPort = /^[a-z][a-z0-9+.-]*:\/\/(\[[^\]]*\]|[^/:?#]*):\d+/i.test(withScheme);
+  if (!explicitPort && url.protocol === 'http:' && !/^http:\/\//i.test(text)) {
+    url.port = String(DEFAULT_PORT);
+  }
+  return url.origin;
+}
+
+/** User names typed by the user, separated by commas, spaces or new lines. */
+export function parseUsers(raw) {
+  const words = typeof raw === 'string' ? raw.split(/[\s,;]+/).filter(Boolean) : [];
+  return [...new Set(words.map((word) => word.toLowerCase()))];
+}
+
+const isTrue = (value) => value === true || value === 'true';
+
+/**
+ * @param {Record<string, unknown>} raw the configuration returned by the SDK
  */
 export function normalizeConfig(raw = {}) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const typed = typeof source.url === 'string' ? source.url.trim() : '';
+  const url = parseServerUrl(typed);
+  const interval = POLL_INTERVALS.includes(String(source.poll_interval ?? ''))
+    ? String(source.poll_interval)
+    : DEFAULT_CONFIG.poll_interval;
   return {
-    ...DEFAULT_CONFIG,
-    ...raw,
-    // Force the types: config may arrive as strings from a form.
-    latitude: Number(raw.latitude ?? DEFAULT_CONFIG.latitude),
-    longitude: Number(raw.longitude ?? DEFAULT_CONFIG.longitude),
-    poll_frequency: Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency),
-    // The preference is a boolean; anything but an explicit false means true.
-    GLADYS_PREFER_LOCAL: raw.GLADYS_PREFER_LOCAL !== false,
+    url,
+    invalidUrl: typed !== '' && url === null,
+    // A key pasted with a new line or spaces around it.
+    apiKey: typeof source.api_key === 'string' ? source.api_key.trim() : '',
+    insecure: isTrue(source.insecure),
+    users: parseUsers(source.users),
+    publishIps: isTrue(source.publish_ips),
+    pollIntervalMs: Number(interval) * 1000,
+    language: LANGUAGES.includes(source.language) ? source.language : DEFAULT_CONFIG.language,
   };
 }

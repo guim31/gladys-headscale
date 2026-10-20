@@ -1,0 +1,54 @@
+{
+  "nodes": [
+    {
+      "id": "1",
+      "machineKey": "mkey:7d73d83668188353ce37bdbbd3948ceca80957e4f86806d32fbc02af3faa8700",
+      "nodeKey": "nodekey:f57714e48929bf981e2dd338e26b59eb7e731974bd648d5ca067ba82f26315df",
+      "discoKey": "discokey:24d78a64e42468fda1249917d5dd672833f71d2183087d99910360233139efb6",
+      "ipAddresses": ["100.64.0.1", "fd7a:115c:a1e0::1"],
+      "name": "laptop",
+      "user": {
+        "id": "1",
+        "name": "alice",
+        "createdAt": "2026-10-20T06:55:06.684927283Z",
+        "displayName": "",
+        "email": "",
+        "providerId": "",
+        "provider": "",
+        "profilePicUrl": ""
+      },
+      "lastSeen": "2026-10-20T06:55:12.387796041Z",
+      "expiry": null,
+      "preAuthKey": {
+        "user": {
+          "id": "1",
+          "name": "alice",
+          "createdAt": "2026-10-20T06:55:06.684927283Z",
+          "displayName": "",
+          "email": "",
+          "providerId": "",
+          "provider": "",
+          "profilePicUrl": ""
+        },
+        "id": "1",
+        "key": "000000000000000000000000000000000000000000000000",
+        "reusable": false,
+        "ephemeral": false,
+        "used": true,
+        "expiration": "2026-10-20T07:55:07.119750840Z",
+        "createdAt": "2026-10-20T06:55:07.121610612Z",
+        "aclTags": []
+      },
+      "createdAt": "2026-10-20T06:55:07.848039121Z",
+      "registerMethod": "REGISTER_METHOD_AUTH_KEY",
+      "forcedTags": [],
+      "invalidTags": [],
+      "validTags": [],
+      "givenName": "laptop",
+      "online": true,
+      "approvedRoutes": [],
+      "availableRoutes": ["0.0.0.0/0", "198.51.100.0/24", "::/0"],
+      "subnetRoutes": []
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "id": "1",
+      "machineKey": "mkey:a8f0b8bac3d59c7767e33d95c65e755739fe1b828fd74307bf00945a398bda50",
+      "nodeKey": "nodekey:9dd3c187b97d00b23afdbbe726c58de1a41f73db2e7a265e470ae46905d00542",
+      "discoKey": "discokey:75fa7e8c5f2bb32b656197ee4e2fce6eaef7c06e097f293a22fbfb34fe0dc225",
+      "ipAddresses": ["100.64.0.1", "fd7a:115c:a1e0::1"],
+      "name": "laptop",
+      "user": {
+        "id": "1",
+        "name": "alice",
+        "createdAt": "2026-10-20T06:52:31.825472577Z",
+        "displayName": "",
+        "email": "",
+        "providerId": "",
+        "provider": "",
+        "profilePicUrl": ""
+      },
+      "lastSeen": "2026-10-20T06:52:53.828335510Z",
+      "expiry": null,
+      "preAuthKey": {
+        "user": {
+          "id": "1",
+          "name": "alice",
+          "createdAt": "2026-10-20T06:52:31.825472577Z",
+          "displayName": "",
+          "email": "",
+          "providerId": "",
+          "provider": "",
+          "profilePicUrl": ""
+        },
+        "id": "1",
+        "key": "hskey-auth-AbCdEfGhIjKl-***",
+        "reusable": true,
+        "ephemeral": false,
+        "used": false,
+        "expiration": "2026-10-20T07:52:40.597608748Z",
+        "createdAt": "2026-10-20T06:52:40.598734604Z",
+        "aclTags": []
+      },
+      "createdAt": "2026-10-20T06:52:47.257229471Z",
+      "registerMethod": "REGISTER_METHOD_AUTH_KEY",
+      "givenName": "laptop",
+      "online": true,
+      "approvedRoutes": ["198.51.100.0/24"],
+      "availableRoutes": ["0.0.0.0/0", "198.51.100.0/24", "::/0"],
+      "subnetRoutes": ["198.51.100.0/24"],
+      "tags": []
+    },
+    {
+      "id": "2",
+      "machineKey": "mkey:5bade9d12c5dd1530ad2741c1dd35c4ee29932eaf821c24116f6bd3649303f90",
+      "nodeKey": "nodekey:7bc7ddd8c0719f36ab8a607cb8b58e3c447154eabfd48bd736db692c1002d631",
+      "discoKey": "discokey:3eb5d94fa4a65c80c3f632b048db8cffd7dc4b2b4c144a8e2fff77f29086cfdd",
+      "ipAddresses": ["100.64.0.2", "fd7a:115c:a1e0::2"],
+      "name": "phone",
+      "user": {
+        "id": "2",
+        "name": "bob",
+        "createdAt": "2026-10-20T06:52:32.484877322Z",
+        "displayName": "",
+        "email": "",
+        "providerId": "",
+        "provider": "",
+        "profilePicUrl": ""
+      },
+      "lastSeen": "2026-10-20T06:52:54.330544726Z",
+      "expiry": "2026-10-27T12:00:00Z",
+      "preAuthKey": {
+        "user": {
+          "id": "2",
+          "name": "bob",
+          "createdAt": "2026-10-20T06:52:32.484877322Z",
+          "displayName": "",
+          "email": "",
+          "providerId": "",
+          "provider": "",
+          "profilePicUrl": ""
+        },
+        "id": "2",
+        "key": "hskey-auth-AbCdEfGhIjKl-***",
+        "reusable": false,
+        "ephemeral": false,
+        "used": true,
+        "expiration": "2026-10-20T07:52:40.864979464Z",
+        "createdAt": "2026-10-20T06:52:40.865473072Z",
+        "aclTags": []
+      },
+      "createdAt": "2026-10-20T06:52:47.264875290Z",
+      "registerMethod": "REGISTER_METHOD_AUTH_KEY",
+      "givenName": "phone",
+      "online": true,
+      "approvedRoutes": [],
+      "availableRoutes": [],
+      "subnetRoutes": [],
+      "tags": []
+    }
+  ]
+}

@@ -1,177 +1,563 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Headscale",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Machines of your self-hosted Headscale server: online, last seen, key expiry.",
+    "fr": "Les machines de votre serveur Headscale auto-hébergé : en ligne, dernière connexion, expiration.",
+    "de": "Geräte deines selbst gehosteten Headscale-Servers: online, zuletzt gesehen, Schlüsselablauf.",
+    "es": "Las máquinas de su servidor Headscale autoalojado: en línea, última conexión, caducidad."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-headscale:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-headscale/main/cover.png",
+  "categories": ["network"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Headscale server",
+        "fr": "Votre serveur Headscale",
+        "de": "Dein Headscale-Server",
+        "es": "Su servidor Headscale"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "The address of Headscale and an API key, created on the server with: headscale apikeys create --expiration 365d. Read only: Gladys changes nothing on Headscale.",
+        "fr": "L'adresse de Headscale et une clé d'API, créée sur le serveur par : headscale apikeys create --expiration 365d. Lecture seule : Gladys ne modifie rien sur Headscale.",
+        "de": "Die Adresse von Headscale und ein API-Schlüssel, auf dem Server erstellt mit: headscale apikeys create --expiration 365d. Nur Lesen: Gladys ändert nichts an Headscale.",
+        "es": "La dirección de Headscale y una clave de API, creada en el servidor con: headscale apikeys create --expiration 365d. Solo lectura: Gladys no modifica nada en Headscale."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://headscale.net/stable/ref/api/",
+          "label": {
+            "en": "Headscale API keys",
+            "fr": "Clés d'API Headscale",
+            "de": "Headscale-API-Schlüssel",
+            "es": "Claves de API de Headscale"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Server address",
+        "fr": "Adresse du serveur",
+        "de": "Serveradresse",
+        "es": "Dirección del servidor"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
       "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+        "en": "The server_url of Headscale, or its IP address and port (8080 by default).",
+        "fr": "Le server_url de Headscale, ou son adresse IP et son port (8080 par défaut).",
+        "de": "Die server_url von Headscale oder seine IP-Adresse und sein Port (standardmäßig 8080).",
+        "es": "El server_url de Headscale, o su dirección IP y su puerto (8080 por defecto)."
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "placeholder": {
+        "en": "e.g. https://headscale.example.com",
+        "fr": "ex. https://headscale.example.com",
+        "de": "z. B. https://headscale.example.com",
+        "es": "p. ej. https://headscale.example.com"
+      },
       "required": false,
-      "default": "celsius",
+      "default": ""
+    },
+    {
+      "key": "api_key",
+      "type": "secret",
+      "label": {
+        "en": "API key",
+        "fr": "Clé d'API",
+        "de": "API-Schlüssel",
+        "es": "Clave de API"
+      },
+      "description": {
+        "en": "Shown once by headscale apikeys create. It expires after 90 days unless you set --expiration.",
+        "fr": "Affichée une seule fois par headscale apikeys create. Elle expire au bout de 90 jours sauf --expiration.",
+        "de": "Wird von headscale apikeys create nur einmal angezeigt. Er läuft ohne --expiration nach 90 Tagen ab.",
+        "es": "Se muestra una sola vez con headscale apikeys create. Caduca a los 90 días salvo con --expiration."
+      },
+      "required": false
+    },
+    {
+      "key": "insecure",
+      "type": "boolean",
+      "label": {
+        "en": "Accept a self-signed certificate",
+        "fr": "Accepter un certificat auto-signé",
+        "de": "Selbstsigniertes Zertifikat akzeptieren",
+        "es": "Aceptar un certificado autofirmado"
+      },
+      "description": {
+        "en": "Only for an https address whose certificate is not signed by a known authority.",
+        "fr": "Seulement pour une adresse https dont le certificat n'est pas signé par une autorité connue.",
+        "de": "Nur für eine https-Adresse, deren Zertifikat nicht von einer bekannten Stelle signiert ist.",
+        "es": "Solo para una dirección https cuyo certificado no está firmado por una autoridad conocida."
+      },
+      "required": false,
+      "default": false
+    },
+    {
+      "key": "users",
+      "type": "string",
+      "label": {
+        "en": "Users to follow",
+        "fr": "Utilisateurs à suivre",
+        "de": "Zu verfolgende Benutzer",
+        "es": "Usuarios a seguir"
+      },
+      "description": {
+        "en": "Headscale user names, separated by commas. Empty: the machines of every user.",
+        "fr": "Noms d'utilisateurs Headscale, séparés par des virgules. Vide : les machines de tous les utilisateurs.",
+        "de": "Headscale-Benutzernamen, durch Kommas getrennt. Leer: die Geräte aller Benutzer.",
+        "es": "Nombres de usuario de Headscale, separados por comas. Vacío: las máquinas de todos los usuarios."
+      },
+      "placeholder": {
+        "en": "e.g. alice, bob",
+        "fr": "ex. alice, bob",
+        "de": "z. B. alice, bob",
+        "es": "p. ej. alice, bob"
+      },
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "publish_ips",
+      "type": "boolean",
+      "label": {
+        "en": "Publish the IP addresses",
+        "fr": "Publier les adresses IP",
+        "de": "IP-Adressen veröffentlichen",
+        "es": "Publicar las direcciones IP"
+      },
+      "description": {
+        "en": "Off: the tailnet addresses of the machines stay out of Gladys. On: a text feature shows them.",
+        "fr": "Désactivé : les adresses du tailnet restent hors de Gladys. Activé : une fonctionnalité texte les affiche.",
+        "de": "Aus: Die Tailnet-Adressen der Geräte bleiben außerhalb von Gladys. An: Eine Textfunktion zeigt sie an.",
+        "es": "Desactivado: las direcciones del tailnet quedan fuera de Gladys. Activado: una función de texto las muestra."
+      },
+      "required": false,
+      "default": false
+    },
+    {
+      "key": "poll_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often Headscale is read: one or two requests. A machine shows offline as soon as it leaves the server.",
+        "fr": "Fréquence de lecture de Headscale : une ou deux requêtes. Une machine passe hors ligne dès qu'elle quitte le serveur.",
+        "de": "Wie oft Headscale abgefragt wird: eine oder zwei Anfragen. Ein Gerät gilt als offline, sobald es den Server verlässt.",
+        "es": "Frecuencia de lectura de Headscale: una o dos solicitudes. Una máquina pasa a fuera de línea en cuanto deja el servidor."
+      },
+      "required": false,
+      "default": "60",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "30",
+          "label": {
+            "en": "30 s",
+            "fr": "30 s",
+            "de": "30 s",
+            "es": "30 s"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 min",
+            "fr": "1 min",
+            "de": "1 min",
+            "es": "1 min"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 min",
+            "fr": "2 min",
+            "de": "2 min",
+            "es": "2 min"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 min",
+            "fr": "5 min",
+            "de": "5 min",
+            "es": "5 min"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Language of the feature names and of the dates, set when a device is added.",
+        "fr": "Langue des noms de fonctionnalités et des dates, fixée à l'ajout d'un appareil.",
+        "de": "Sprache der Funktionsnamen und der Daten, beim Hinzufügen eines Geräts festgelegt.",
+        "es": "Idioma de los nombres de las funciones y de las fechas, fijado al añadir un dispositivo."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Reads Headscale now and shows how many machines are followed and online.",
+        "fr": "Lit Headscale maintenant et affiche combien de machines sont suivies et en ligne.",
+        "de": "Liest Headscale jetzt und zeigt, wie viele Geräte verfolgt werden und online sind.",
+        "es": "Lee Headscale ahora y muestra cuántas máquinas se siguen y están en línea."
+      },
       "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "machine_offline",
+      "label": {
+        "en": "Headscale machine offline",
+        "fr": "Machine Headscale hors ligne",
+        "de": "Headscale-Gerät offline",
+        "es": "Máquina Headscale fuera de línea"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A machine of the tailnet left the Headscale server.",
+        "fr": "Une machine du tailnet a quitté le serveur Headscale.",
+        "de": "Ein Gerät des Tailnets hat den Headscale-Server verlassen.",
+        "es": "Una máquina del tailnet ha dejado el servidor Headscale."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Machine (empty: any)",
+            "fr": "Machine (vide : n'importe laquelle)",
+            "de": "Gerät (leer: beliebig)",
+            "es": "Máquina (vacío: cualquiera)"
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "key": "user",
+          "type": "string",
+          "label": {
+            "en": "Headscale user (empty: any)",
+            "fr": "Utilisateur Headscale (vide : n'importe lequel)",
+            "de": "Headscale-Benutzer (leer: beliebig)",
+            "es": "Usuario de Headscale (vacío: cualquiera)"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "machine",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Machine name",
+            "fr": "Nom de la machine",
+            "de": "Name des Geräts",
+            "es": "Nombre de la máquina"
+          }
+        },
+        {
+          "key": "user",
+          "type": "string",
+          "label": {
+            "en": "Headscale user",
+            "fr": "Utilisateur Headscale",
+            "de": "Headscale-Benutzer",
+            "es": "Usuario de Headscale"
+          }
         }
       ]
-    }
-  ],
-  "scene_actions": [
+    },
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "machine_online",
+      "label": {
+        "en": "Headscale machine back online",
+        "fr": "Machine Headscale revenue en ligne",
+        "de": "Headscale-Gerät wieder online",
+        "es": "Máquina Headscale de nuevo en línea"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "A machine of the tailnet connected to the Headscale server again.",
+        "fr": "Une machine du tailnet s'est reconnectée au serveur Headscale.",
+        "de": "Ein Gerät des Tailnets hat sich wieder mit dem Headscale-Server verbunden.",
+        "es": "Una máquina del tailnet se ha vuelto a conectar al servidor Headscale."
+      },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "Machine (empty: any)",
+            "fr": "Machine (vide : n'importe laquelle)",
+            "de": "Gerät (leer: beliebig)",
+            "es": "Máquina (vacío: cualquiera)"
+          }
+        },
+        {
+          "key": "user",
+          "type": "string",
+          "label": {
+            "en": "Headscale user (empty: any)",
+            "fr": "Utilisateur Headscale (vide : n'importe lequel)",
+            "de": "Headscale-Benutzer (leer: beliebig)",
+            "es": "Usuario de Headscale (vacío: cualquiera)"
+          }
         }
       ],
-      "outputs": [
+      "variables": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "machine",
+          "type": "string",
+          "label": {
+            "en": "Machine name",
+            "fr": "Nom de la machine",
+            "de": "Name des Geräts",
+            "es": "Nombre de la máquina"
+          }
+        },
+        {
+          "key": "user",
+          "type": "string",
+          "label": {
+            "en": "Headscale user",
+            "fr": "Utilisateur Headscale",
+            "de": "Headscale-Benutzer",
+            "es": "Usuario de Headscale"
+          }
+        }
+      ]
+    },
+    {
+      "key": "key_expiring",
+      "label": {
+        "en": "Machine key about to expire",
+        "fr": "Clé de machine bientôt expirée",
+        "de": "Geräteschlüssel läuft bald ab",
+        "es": "Clave de máquina a punto de caducar"
+      },
+      "description": {
+        "en": "The key of a machine expires in 30, 14, 7, 3 or 1 day(s), or just expired.",
+        "fr": "La clé d'une machine expire dans 30, 14, 7, 3 ou 1 jour(s), ou vient d'expirer.",
+        "de": "Der Schlüssel eines Geräts läuft in 30, 14, 7, 3 oder 1 Tag(en) ab oder ist gerade abgelaufen.",
+        "es": "La clave de una máquina caduca en 30, 14, 7, 3 o 1 día(s), o acaba de caducar."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Machine (empty: any)",
+            "fr": "Machine (vide : n'importe laquelle)",
+            "de": "Gerät (leer: beliebig)",
+            "es": "Máquina (vacío: cualquiera)"
+          }
+        },
+        {
+          "key": "days",
+          "type": "select",
+          "label": {
+            "en": "Days left (empty: any)",
+            "fr": "Jours restants (vide : n'importe lequel)",
+            "de": "Verbleibende Tage (leer: beliebig)",
+            "es": "Días restantes (vacío: cualquiera)"
+          },
+          "options": [
+            {
+              "value": "30",
+              "label": {
+                "en": "30 days",
+                "fr": "30 jours",
+                "de": "30 Tage",
+                "es": "30 días"
+              }
+            },
+            {
+              "value": "14",
+              "label": {
+                "en": "14 days",
+                "fr": "14 jours",
+                "de": "14 Tage",
+                "es": "14 días"
+              }
+            },
+            {
+              "value": "7",
+              "label": {
+                "en": "7 days",
+                "fr": "7 jours",
+                "de": "7 Tage",
+                "es": "7 días"
+              }
+            },
+            {
+              "value": "3",
+              "label": {
+                "en": "3 days",
+                "fr": "3 jours",
+                "de": "3 Tage",
+                "es": "3 días"
+              }
+            },
+            {
+              "value": "1",
+              "label": {
+                "en": "1 day",
+                "fr": "1 jour",
+                "de": "1 Tag",
+                "es": "1 día"
+              }
+            },
+            {
+              "value": "0",
+              "label": {
+                "en": "Expired",
+                "fr": "Expirée",
+                "de": "Abgelaufen",
+                "es": "Caducada"
+              }
+            }
+          ]
+        },
+        {
+          "key": "user",
+          "type": "string",
+          "label": {
+            "en": "Headscale user (empty: any)",
+            "fr": "Utilisateur Headscale (vide : n'importe lequel)",
+            "de": "Headscale-Benutzer (leer: beliebig)",
+            "es": "Usuario de Headscale (vacío: cualquiera)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "machine",
+          "type": "string",
+          "label": {
+            "en": "Machine name",
+            "fr": "Nom de la machine",
+            "de": "Name des Geräts",
+            "es": "Nombre de la máquina"
+          }
+        },
+        {
+          "key": "user",
+          "type": "string",
+          "label": {
+            "en": "Headscale user",
+            "fr": "Utilisateur Headscale",
+            "de": "Headscale-Benutzer",
+            "es": "Usuario de Headscale"
+          }
+        },
+        {
+          "key": "days",
+          "type": "number",
+          "label": {
+            "en": "Days left",
+            "fr": "Jours restants",
+            "de": "Verbleibende Tage",
+            "es": "Días restantes"
+          }
+        },
+        {
+          "key": "expiry",
+          "type": "string",
+          "label": {
+            "en": "Expiry date",
+            "fr": "Date d'expiration",
+            "de": "Ablaufdatum",
+            "es": "Fecha de caducidad"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "machines",
+      "label": {
+        "en": "Headscale machines",
+        "fr": "Machines Headscale",
+        "de": "Headscale-Geräte",
+        "es": "Máquinas Headscale"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Which machines of the tailnet are online, and which keys expire soon.",
+        "fr": "Quelles machines du tailnet sont en ligne, et quelles clés expirent bientôt.",
+        "de": "Welche Geräte des Tailnets online sind und welche Schlüssel bald ablaufen.",
+        "es": "Qué máquinas del tailnet están en línea y qué claves caducan pronto."
+      },
+      "icon": "server"
     }
   ]
 }

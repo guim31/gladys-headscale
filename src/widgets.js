@@ -1,169 +1,195 @@
 // -----------------------------------------------------------------------------
-// Dashboard widgets (SDK v0.14+, Gladys 5.1+).
+// Dashboard widget (manifest `widgets`, Gladys 5.1+): `machines`.
 //
-// A widget puts the integration's own data on the Gladys dashboard without a
-// dedicated core widget. The manifest `widgets` field declares its identity
-// (key, label, icon, optional per-instance `settings`); at runtime the
-// integration returns a DECLARATIVE content — `text`, `value`, `gauge`,
-// `status`, `chart`, `card-list`, `image`, `button` — that the core renders
-// with its own theme, dark mode and translations. No HTML, no CSS.
+// The use case: "which machines of my tailnet are up right now, and is a key
+// about to expire?" at a glance. Two tiles (online machines, machines) and
+// one status list: the machines whose key expires within 7 days first
+// (something to do), then the online ones, then the others with the time
+// they were last seen. No setting, no button: Headscale is administered with
+// its own tools.
 //
-// Each entry of WIDGETS is keyed by the widget `key` and exposes:
-//   - get(gladys, { settings, language, units, config }): the content,
-//     registered by index.js with `gladys.onWidgetGet(key, ...)`;
-//   - action(gladys, { actionKey, params, settings, config }) (optional): a
-//     tapped `button` carrying an `action`, registered with
-//     `gladys.onWidgetAction`.
-//
-// Check your contents in the tests with `validateWidgetContent` (exported by
-// the SDK, see test/widgets.test.js), or run with DEBUG=gladys-integration-sdk
-// to have the SDK log every violation of the vocabulary and the budget.
+// Budget (8 components, 2 texts at most): 2 values and 1 status list, or a
+// single text when there is nothing to show. The values are sent as values,
+// not bound to device features, so the widget works before the devices are
+// added to Gladys.
 // -----------------------------------------------------------------------------
 
-import {
-  createLogger,
-  DEVICE_FEATURE_CATEGORIES,
-  DEVICE_TRANSPORTS,
-  WIDGET_COLORS,
-} from '@gladysassistant/integration-sdk';
-import { identifyDevice } from './devices/index.js';
-import { weatherStation } from './devices/weatherStation.js';
-import { plug } from './devices/plug.js';
-import { light } from './devices/light.js';
+import { WIDGET_COLORS } from '@gladysassistant/integration-sdk';
+import { daysLeft } from './devices.js';
+import { EXPIRY_WARNING_DAYS, WIDGET_KEY } from './hub.js';
+import { pick } from './texts.js';
 
-const logger = createLogger({ name: 'widgets' });
+// Rows of the status list (one more says how many are not shown).
+export const MAX_ROWS = 9;
 
-// Widget key, as declared in the manifest `widgets` field.
-export const DEMO_STATUS_WIDGET = 'demo_status';
-
-// Keys of the `button` actions the demo_status content declares.
-const DEMO_STATUS_ACTIONS = { IDENTIFY_LIGHT: 'identify_light' };
-
-// How the plug transport reads in the status list.
-const TRANSPORT_STATUS = {
-  [DEVICE_TRANSPORTS.LOCAL]: { value: { en: 'Local', fr: 'Locale' }, color: WIDGET_COLORS.SUCCESS },
-  [DEVICE_TRANSPORTS.CLOUD]: { value: { en: 'Cloud', fr: 'Cloud' }, color: WIDGET_COLORS.INFO },
-  [DEVICE_TRANSPORTS.UNREACHABLE]: {
-    value: { en: 'Unreachable', fr: 'Injoignable' },
-    color: WIDGET_COLORS.DANGER,
+export const TEXT = {
+  online: { en: 'Online', fr: 'En ligne', de: 'Online', es: 'En línea' },
+  machines: { en: 'Machines', fr: 'Machines', de: 'Geräte', es: 'Máquinas' },
+  expired: {
+    en: 'Key expired',
+    fr: 'Clé expirée',
+    de: 'Schlüssel abgelaufen',
+    es: 'Clave caducada',
+  },
+  expiresIn: {
+    en: 'Key: {days} d left',
+    fr: 'Clé : encore {days} j',
+    de: 'Schlüssel: noch {days} T.',
+    es: 'Clave: quedan {days} d',
+  },
+  never: { en: 'Never seen', fr: 'Jamais vue', de: 'Nie gesehen', es: 'Nunca vista' },
+  more: {
+    en: 'Other machines',
+    fr: 'Autres machines',
+    de: 'Weitere Geräte',
+    es: 'Otras máquinas',
+  },
+  empty: {
+    en: 'No machine registered on Headscale yet.',
+    fr: 'Aucune machine enregistrée sur Headscale pour le moment.',
+    de: 'Noch kein Gerät bei Headscale registriert.',
+    es: 'Todavía no hay ninguna máquina registrada en Headscale.',
+  },
+  waiting: {
+    en: 'Waiting for the first reading of Headscale…',
+    fr: 'En attente de la première lecture de Headscale…',
+    de: 'Warte auf die erste Abfrage von Headscale…',
+    es: 'Esperando la primera lectura de Headscale…',
   },
 };
 
-// A live tile references a feature by its external_id: read it from the
-// discovery payload itself, so the widget and the device never disagree.
-function featureExternalId(gladys, config, blueprint, category) {
-  const device = blueprint.buildDevice(gladys, config);
-  return device.features.find((feature) => feature.category === category).external_id;
+const fit = (text, max) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
+
+function message(text, language, ttl = 60) {
+  return {
+    ttl_seconds: ttl,
+    components: [{ type: 'text', variant: 'body', text: fit(pick(text, language), 300) }],
+  };
 }
 
-function plugConnectionStatus(gladys, config) {
-  const { transport, degraded } = plug.transport(gladys, config);
-  const { value, color } = TRANSPORT_STATUS[transport];
-  if (degraded) {
+/** "5 min ago", "2 h ago", "3 days ago", in the language of the dashboard. */
+export function ago(time, now, language) {
+  const minutes = Math.max(1, Math.round((now - time) / 60_000));
+  const format = new Intl.RelativeTimeFormat(language, { numeric: 'always', style: 'short' });
+  if (minutes < 60) {
+    return format.format(-minutes, 'minute');
+  }
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) {
+    return format.format(-hours, 'hour');
+  }
+  return format.format(-Math.round(hours / 24), 'day');
+}
+
+const expiring = (machine, now) => {
+  const days = daysLeft(machine, now);
+  return days !== null && days < EXPIRY_WARNING_DAYS;
+};
+
+/** Order: key expiring (soonest first), online (by name), offline (latest seen first). */
+function rank(machine, now) {
+  if (expiring(machine, now)) {
+    return 0;
+  }
+  return machine.online ? 1 : 2;
+}
+
+export function sortMachines(machines, now) {
+  return [...machines].sort(
+    (a, b) =>
+      rank(a, now) - rank(b, now) ||
+      (rank(a, now) === 0 ? a.expiry - b.expiry : 0) ||
+      (rank(a, now) === 2 ? (b.lastSeen ?? 0) - (a.lastSeen ?? 0) : 0) ||
+      a.name.localeCompare(b.name),
+  );
+}
+
+function row(machine, now, language) {
+  const label = fit(machine.name, 40);
+  if (expiring(machine, now)) {
+    const days = daysLeft(machine, now);
     return {
-      value: { en: `${value.en} (degraded mode)`, fr: `${value.fr} (mode dégradé)` },
-      color: WIDGET_COLORS.WARNING,
+      label,
+      icon: 'key',
+      value: fit(
+        machine.expiry <= now
+          ? pick(TEXT.expired, language)
+          : pick(TEXT.expiresIn, language).replace('{days}', String(days)),
+        40,
+      ),
+      color: machine.expiry <= now ? WIDGET_COLORS.DANGER : WIDGET_COLORS.WARNING,
     };
   }
-  return { value, color };
+  if (machine.online) {
+    return {
+      label,
+      icon: 'wifi',
+      value: pick(TEXT.online, language),
+      color: WIDGET_COLORS.SUCCESS,
+    };
+  }
+  return {
+    label,
+    icon: 'wifi-off',
+    value: fit(
+      machine.lastSeen === null ? pick(TEXT.never, language) : ago(machine.lastSeen, now, language),
+      40,
+    ),
+    color: WIDGET_COLORS.NEUTRAL,
+  };
+}
+
+async function get(hub, { language = 'en' } = {}) {
+  if (!hub.config) {
+    return message(TEXT.waiting, language);
+  }
+  const problem = hub.configProblem();
+  if (problem) {
+    return message(problem, language);
+  }
+  if (hub.error) {
+    return message(hub.errorMessage(), language, 30);
+  }
+  if (!hub.read) {
+    return message(TEXT.waiting, language);
+  }
+  const now = hub.now();
+  const machines = sortMachines(hub.machines, now);
+  if (machines.length === 0) {
+    return message(TEXT.empty, language);
+  }
+  const online = machines.filter((machine) => machine.online).length;
+  const shown = machines.length > MAX_ROWS + 1 ? machines.slice(0, MAX_ROWS) : machines;
+  const items = shown.map((machine) => row(machine, now, language));
+  if (shown.length < machines.length) {
+    items.push({
+      label: pick(TEXT.more, language),
+      icon: 'more-horizontal',
+      value: machines.length - shown.length,
+      color: WIDGET_COLORS.NEUTRAL,
+    });
+  }
+  return {
+    ttl_seconds: 30,
+    components: [
+      {
+        type: 'value',
+        value: online,
+        label: pick(TEXT.online, language),
+        icon: 'monitor',
+        color: online > 0 ? WIDGET_COLORS.SUCCESS : WIDGET_COLORS.NEUTRAL,
+      },
+      {
+        type: 'value',
+        value: machines.length,
+        label: pick(TEXT.machines, language),
+        icon: 'server',
+      },
+      { type: 'status', items },
+    ],
+  };
 }
 
 export const WIDGETS = {
-  [DEMO_STATUS_WIDGET]: {
-    // `settings` holds the per-instance values of the declared `settings`
-    // (none here); `language` and `units` are those of the user viewing the
-    // dashboard, for the values you format yourself. Multi-language objects
-    // (`{ en, fr }`) are picked by the core, like everywhere else.
-    async get(gladys, { config }) {
-      logger.debug(`onWidgetGet <- ${DEMO_STATUS_WIDGET}`);
-      return {
-        // Reload policy: the computed parts below only change with the
-        // config, and index.js nudges the widget on every (re)connection and
-        // config update (see refreshWidgets) — the TTL is just a safety net.
-        ttl_seconds: 300,
-        components: [
-          // Device-bound tiles: LIVE, they follow the published states over
-          // the core's real-time path. No TTL, no nudge involved.
-          {
-            type: 'value',
-            label: { en: 'Temperature', fr: 'Température' },
-            icon: 'thermometer',
-            device_feature: featureExternalId(
-              gladys,
-              config,
-              weatherStation,
-              DEVICE_FEATURE_CATEGORIES.TEMPERATURE_SENSOR,
-            ),
-          },
-          {
-            type: 'value',
-            label: { en: 'Office plug', fr: 'Prise du bureau' },
-            icon: 'zap',
-            device_feature: featureExternalId(
-              gladys,
-              config,
-              plug,
-              DEVICE_FEATURE_CATEGORIES.ENERGY_SENSOR,
-            ),
-          },
-          // Computed rows: what the integration knows that no device feature
-          // carries. Served from the core cache until the TTL or a nudge.
-          {
-            type: 'status',
-            items: [
-              {
-                label: { en: 'Plug connection', fr: 'Connexion de la prise' },
-                icon: 'wifi',
-                ...plugConnectionStatus(gladys, config),
-              },
-              {
-                label: { en: 'Observed location', fr: 'Position observée' },
-                icon: 'map-pin',
-                value: `${config.latitude.toFixed(2)}, ${config.longitude.toFixed(2)}`,
-                color: WIDGET_COLORS.NEUTRAL,
-              },
-            ],
-          },
-          // `params` are declared HERE and sent back as-is: the handler never
-          // receives user input (a dashboard can hang on a public wall).
-          {
-            type: 'button',
-            label: { en: 'Identify the light', fr: 'Identifier la lampe' },
-            icon: 'eye',
-            style: 'secondary',
-            action: {
-              key: DEMO_STATUS_ACTIONS.IDENTIFY_LIGHT,
-              params: { device: light.deviceExternalId(gladys) },
-            },
-          },
-        ],
-      };
-    },
-
-    // Resolve an optional toast (string or multi-language object, ≤ 200
-    // characters). After a successful action the core drops the cached
-    // content and every open dashboard refetches it: no nudge needed.
-    async action(gladys, { actionKey, params, config }) {
-      logger.info(`onWidgetAction <- ${DEMO_STATUS_WIDGET}.${actionKey}`);
-      if (actionKey === DEMO_STATUS_ACTIONS.IDENTIFY_LIGHT) {
-        return identifyDevice(gladys, params.device, config);
-      }
-      // Throwing acks the action as failed: the message reaches the user.
-      throw new Error(`Unknown widget action: ${actionKey}`);
-    },
-  },
+  [WIDGET_KEY]: { get },
 };
-
-/**
- * Freshness nudge: ask the core to re-pull every widget NOW instead of
- * waiting for the content TTL. Call it when you KNOW a computed content
- * changed (here: the config, which drives the plug transport and the observed
- * location) — and after every (re)connection, since the nudges are
- * fire-and-forget: rate-limited core-side to 1 per 10 s per widget, dropped
- * silently while disconnected.
- */
-export function refreshWidgets(gladys) {
-  for (const key of Object.keys(WIDGETS)) {
-    gladys.requestWidgetRefresh(key);
-  }
-}

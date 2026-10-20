@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    {
+      "id": "1",
+      "machineKey": "mkey:ccbe220ef2a765fcce9e0f206dd654f068cab036bcecdf01aaa00a6051c84ee8",
+      "nodeKey": "nodekey:d4947017a9129a108fc78c5b8eb243db69190d8d636398162f90cb3a9d2818ef",
+      "discoKey": "discokey:f106cde3cf4e9f7e16b166c7d2b0bf6ae62bbe85f4b2e777a9bba833a91cbafb",
+      "ipAddresses": ["100.64.0.1", "fd7a:115c:a1e0::1"],
+      "name": "laptop",
+      "user": {
+        "id": "1",
+        "name": "alice",
+        "createdAt": "2026-10-20T06:55:56.682851871Z"
+      },
+      "lastSeen": "2026-10-20T06:56:14.224761684Z",
+      "expiry": "2026-10-20T06:56:14.232779536Z",
+      "preAuthKey": {
+        "user": "alice",
+        "id": "1",
+        "key": "000000000000000000000000000000000000000000000000",
+        "reusable": false,
+        "ephemeral": false,
+        "used": true,
+        "expiration": "2026-10-20T07:55:57.128829325Z",
+        "createdAt": "2026-10-20T06:55:57.130159514Z",
+        "aclTags": []
+      },
+      "createdAt": "2026-10-20T06:55:57.887763219Z",
+      "registerMethod": "REGISTER_METHOD_AUTH_KEY",
+      "forcedTags": [],
+      "invalidTags": [],
+      "validTags": [],
+      "givenName": "laptop",
+      "online": false
+    }
+  ]
+}
