@@ -30,6 +30,16 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+The integration keeps nothing in `/data`. The Headscale API key is stored by
+Gladys in the integration configuration; it is sent only to the Headscale
+address of the configuration, in the `Authorization` header, and never
+written to the logs. The key gives full access to the Headscale API, but the
+integration only reads (`GET` requests on the machines and routes). The
+tailnet IP addresses of the machines are published to Gladys only when the
+"Publish the IP addresses" option is on, and never written to the logs. The
+"Accept a self-signed certificate" option turns off the certificate check for
+this server only.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+Headscale and the Tailscale clients.

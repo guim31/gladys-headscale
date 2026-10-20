@@ -1,77 +1,79 @@
+// -----------------------------------------------------------------------------
+// The `machines` widget, checked with the SDK's validateWidgetContent: the
+// core vocabulary and its budget (8 components, 2 texts at most).
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { WIDGET_KEY } from '../src/hub.js';
+import { MAX_ROWS } from '../src/widgets.js';
+import { createWorld } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+async function content(w, { language = 'en' } = {}) {
+  const ack = await w.fake.widgetGet(WIDGET_KEY, { settings: {}, language });
+  assert.equal(ack.success, true, ack.error);
+  const tree = ack.data.content;
+  assert.deepEqual(validateWidgetContent(tree), [], 'within the core vocabulary and budget');
+  return tree;
+}
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
-
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
-
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
-    );
-  } finally {
-    simulateLanSession(true);
-  }
-});
-
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
+test('two tiles and one row per machine: expiring keys first, then online, then offline', async (t) => {
+  const w = await createWorld();
+  t.after(() => w.app.stop());
+  w.server.add(3, { name: 'nas', online: false });
+  w.server.setOnline('nas', false, w.clock.now() - 2 * 24 * 3_600_000);
+  await w.hub.poll();
+  let [online, total, status] = (await content(w)).components;
+  assert.equal(online.value, 2);
+  assert.equal(total.value, 3);
+  assert.deepEqual(
+    status.items.map((item) => [item.label, item.value, item.color]),
+    [
+      ['laptop', 'Online', 'success'],
+      ['phone', 'Online', 'success'],
+      ['nas', '2 days ago', 'neutral'],
+    ],
   );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
+  // Within 7 days: the phone goes first, in orange; expired, in red.
+  w.clock.advance(24 * 3_600_000);
+  await w.hub.poll();
+  [, , status] = (await content(w, { language: 'fr' })).components;
+  assert.deepEqual(status.items[0], {
+    label: 'phone',
+    icon: 'key',
+    value: 'Clé : encore 7 j',
+    color: 'warning',
+  });
+  w.clock.advance(7 * 24 * 3_600_000);
+  await w.hub.poll();
+  [, , status] = (await content(w)).components;
+  assert.deepEqual([status.items[0].value, status.items[0].color], ['Key expired', 'danger']);
+});
+
+test('a big tailnet is cut with a counter row', async (t) => {
+  const w = await createWorld();
+  t.after(() => w.app.stop());
+  for (let i = 3; i < 15; i += 1) {
+    w.server.add(i);
   }
+  await w.hub.poll();
+  const status = (await content(w)).components[2];
+  assert.equal(status.items.length, MAX_ROWS + 1);
+  assert.equal(status.items.at(-1).value, 14 - MAX_ROWS);
 });
 
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
-  );
-});
-
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('messages: configuration problem, outage, empty server, in the dashboard language', async (t) => {
+  const empty = await createWorld({ config: { language: 'en' } });
+  t.after(() => empty.app.stop());
+  assert.match((await content(empty, { language: 'de' })).components[0].text, /Headscale-Servers/);
+  const w = await createWorld();
+  t.after(() => w.app.stop());
+  w.server.online = false;
+  await w.hub.poll();
+  assert.match((await content(w, { language: 'fr' })).components[0].text, /ne répond pas/);
+  w.server.online = true;
+  w.server.nodes = [];
+  await w.hub.poll();
+  assert.match((await content(w, { language: 'es' })).components[0].text, /ninguna máquina/);
 });

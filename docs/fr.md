@@ -1,67 +1,171 @@
-# Template de démonstration
+# Headscale
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Suivez les machines de votre serveur [Headscale](https://headscale.net) dans
+Gladys : un appareil par machine (en ligne ou non, dernière connexion, jours
+avant l'expiration de sa clé, routes annoncées et activées), un appareil
+« Headscale » avec les machines en ligne et au total, un widget de tableau de
+bord, et des déclencheurs de scène quand une machine passe hors ligne, revient,
+ou quand sa clé va expirer.
 
-## Ce que vous obtenez
+Headscale est le serveur de coordination libre et auto-hébergé compatible avec
+les clients Tailscale. Cette intégration s'adresse à ceux qui **hébergent leur
+propre serveur Headscale** ; elle ne lit pas le service cloud de Tailscale.
+Elle a été testée contre de vrais serveurs Headscale 0.22.3, 0.23.0, 0.26.1 et
+0.29.5 en Docker, avec des clients Tailscale enregistrés puis arrêtés. Vos
+retours sont les bienvenus sur le
+[forum Gladys](https://community.gladysassistant.com) ou dans les
+[issues](https://github.com/guim31/gladys-headscale/issues).
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+## Ce qu'il vous faut
+
+- Gladys Assistant 5.1.0 ou plus récent.
+- Un serveur Headscale, version 0.22 ou plus récente, joignable depuis Gladys :
+  son adresse publique (`server_url`) ou son adresse et son port sur votre
+  réseau (8080 par défaut).
+- Une clé d'API de ce serveur. Gladys ne fait que lire : elle ne modifie rien
+  sur Headscale.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+1. Sur le serveur Headscale, créez une clé d'API (voir plus bas) et copiez-la :
+   elle n'est affichée qu'une fois.
+2. Dans Gladys, installez l'intégration, puis ouvrez son écran
+   **Configuration**.
+3. **Adresse du serveur** : le `server_url` de Headscale
+   (`https://headscale.example.com`), ou son adresse IP et son port
+   (`192.168.1.2:8080`). Une adresse sans `http://` ni `https://` est lue en
+   http, sur le port 8080 s'il n'est pas précisé.
+4. **Clé d'API** : la clé créée à l'étape 1.
+5. **Accepter un certificat auto-signé** : seulement pour une adresse https dont
+   le certificat n'est pas signé par une autorité connue.
+6. **Utilisateurs à suivre** : noms d'utilisateurs Headscale, séparés par des
+   virgules. Vide : les machines de tous les utilisateurs.
+7. **Publier les adresses IP** : désactivé par défaut. Activé, chaque machine
+   reçoit une fonctionnalité **Adresses IP** avec ses adresses du tailnet.
+8. **Intervalle de rafraîchissement** : 1 minute par défaut. Chaque lecture
+   coûte une requête (deux avant Headscale 0.26).
+9. **Langue des noms** : la langue des noms de fonctionnalités et des dates,
+   le français par défaut.
+10. Enregistrez, puis cliquez sur **Tester la connexion** : elle indique combien
+    de machines sont suivies et en ligne. Les appareils apparaissent alors dans
+    l'onglet **Découverte** de l'intégration : ajoutez ceux que vous voulez.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+### La clé d'API
 
-## Actions
+Sur le serveur Headscale (ou dans son conteneur) :
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+```sh
+headscale apikeys create --expiration 365d
+```
 
-## Scènes
+Sans `--expiration`, la clé expire au bout de 90 jours, et Gladys affiche alors
+« Clé d'API refusée ». `headscale apikeys list` liste les clés et leur
+expiration, `headscale apikeys expire --prefix <préfixe>` en révoque une. La clé
+donne un accès complet à l'API de Headscale : gardez-la pour vous.
+L'intégration ne lit que la liste des machines (et des routes avant 0.26).
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+### Quelle adresse ?
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+Gladys appelle Headscale depuis son conteneur Docker. Si Headscale tourne sur
+la même machine, donnez l'adresse de la machine sur votre réseau, jamais
+`127.0.0.1`. Derrière un reverse proxy, l'adresse publique en `https://`
+fonctionne aussi.
+
+## Les appareils
+
+**Headscale** (un appareil) :
+
+| Fonctionnalité    | Ce qu'elle indique                                      |
+| ----------------- | ------------------------------------------------------- |
+| Machines en ligne | Machines connectées au serveur en ce moment             |
+| Machines          | Machines suivies (après le filtre sur les utilisateurs) |
+
+**Chaque machine** (son nom dans Headscale, suivi de `(Headscale)`) :
+
+| Fonctionnalité            | Ce qu'elle indique                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| En ligne                  | Oui tant que la machine garde sa connexion au serveur                              |
+| Vue pour la dernière fois | Quand elle est passée hors ligne ; en ligne, quand elle s'est connectée            |
+| La clé expire dans        | Jours avant l'expiration de la clé de la machine, 0 une fois expirée               |
+| Routes annoncées          | Routes de sous-réseau annoncées par la machine (le nœud de sortie compte pour une) |
+| Routes activées           | Parmi elles, celles approuvées sur le serveur                                      |
+| Adresses IP               | Ses adresses du tailnet, seulement avec **Publier les adresses IP** (désactivé)    |
+
+**La clé expire dans** n'existe que pour une machine dont la clé expire :
+Headscale peut désactiver l'expiration par machine
+(`headscale nodes expire --disable` sur les versions récentes), et les machines
+à tag n'en ont souvent pas. Si une clé se met à expirer plus tard, Gladys
+propose **Mettre à jour** dans l'onglet Découverte. Une machine qui se
+déconnecte de son compte (logout) reçoit une clé expirée dans Headscale : elle
+affiche 0.
+
+Une machine est identifiée par son identifiant Headscale : la supprimer de
+Headscale puis l'enregistrer à nouveau crée un nouvel appareil dans Gladys.
 
 ## Tableau de bord
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Le widget **Machines Headscale** affiche les machines en ligne et au total,
+puis une ligne par machine : d'abord celles dont la clé expire sous 7 jours (en
+orange, en rouge une fois expirée), puis celles en ligne, puis les autres avec
+l'heure à laquelle elles ont été vues pour la dernière fois.
+
+## Scènes
+
+### Déclencheurs
+
+- **Machine Headscale hors ligne** : une machine a quitté le serveur (éteinte,
+  hors réseau, déconnectée).
+- **Machine Headscale revenue en ligne** : une machine s'est reconnectée.
+- **Clé de machine bientôt expirée** : la clé d'une machine expire dans 30, 14,
+  7, 3 ou 1 jour(s), ou vient d'expirer. Son filtre
+  **Jours restants (vide : n'importe lequel)** retient une de ces étapes.
+
+Chaque déclencheur peut être limité à une machine
+(**Machine (vide : n'importe laquelle)**) ou aux machines d'un utilisateur
+(**Utilisateur Headscale (vide : n'importe lequel)**, le nom exact). Ils
+donnent les variables **Nom de la machine** et **Utilisateur Headscale**, plus
+**Jours restants** et **Date d'expiration** pour la clé. Aucun événement n'est
+envoyé à la première lecture après un démarrage ou un changement de
+configuration, ni pour une machine qui vient d'apparaître : l'état précédent est
+inconnu. Les étapes de la clé sont vues pendant que l'intégration tourne : une
+étape franchie pendant qu'elle était arrêtée n'est pas envoyée après coup. Une déconnexion (logout, qui fait expirer la clé dans Headscale) ne déclenche que **Machine Headscale hors ligne**.
+
+### Idées de scènes
+
+- Quand la clé d'une machine expire dans 7 jours, envoyez-vous un message avec
+  son **Nom de la machine** et sa **Date d'expiration**, pour la renouveler à
+  temps.
+- Quand le NAS distant qui garde vos sauvegardes passe hors ligne, envoyez un
+  message.
+- Quand le téléphone d'un membre de la famille revient en ligne sur le tailnet,
+  le soir, allumez la lumière de l'entrée.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Clé d'API refusée »** : la clé est mal copiée, révoquée ou expirée
+  (90 jours par défaut) : créez-en une nouvelle.
+- **« Headscale ne répond pas »** : vérifiez l'adresse et le port, et que Gladys
+  peut les joindre (pare-feu, `127.0.0.1` depuis un conteneur).
+- **« Certificat refusé »** : le certificat https n'est pas signé par une
+  autorité connue. S'il est le vôtre, activez
+  **Accepter un certificat auto-signé**.
+- **« Pas d'API Headscale à cette adresse »** : l'adresse mène à un autre
+  service (la page de connexion du reverse proxy, le port des métriques…) ou à
+  un Headscale antérieur à 0.22.
+- **Aucune machine dans l'onglet Découverte** : cliquez sur
+  **Tester la connexion** ; si aucune machine n'appartient aux utilisateurs de
+  la configuration, vérifiez leurs noms (ou videz le champ).
+
+## Limites
+
+- Un seul serveur Headscale par installation de l'intégration.
+- Gladys accepte 300 états par minute : sur un tailnet de plus d'une cinquantaine de machines, les premières valeurs mettent quelques lectures à arriver.
+- Lecture seule : l'intégration n'approuve pas de route, ne renouvelle pas de
+  clé et ne supprime pas de machine. Cela reste le travail de la commande
+  `headscale` ou de votre interface web.
+- **En ligne** est ce que dit Headscale : une machine est en ligne tant que sa
+  connexion au serveur est ouverte, ce qui ne dit rien du trafic entre machines.
+- Les étapes de **Clé de machine bientôt expirée** ne sont pas mémorisées : une
+  étape franchie pendant que l'intégration était arrêtée est perdue.
+- Sans lien avec le projet Headscale ni avec Tailscale Inc. Tailscale est une
+  marque de Tailscale Inc.

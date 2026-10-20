@@ -1,0 +1,106 @@
+{
+  "routes": [
+    {
+      "id": "1",
+      "machine": {
+        "id": "1",
+        "machineKey": "99c497dcf4d37f2722c329d778010d21337c2d846d84385b64ad1c21299947b1",
+        "nodeKey": "f19d75ff734eef111ac3fdb38010a6d8f98af85da6e404a4e23ffca62e386ec1",
+        "discoKey": "9bc8603f55f50c60ea12e4aebeb125b3df91ca092e76f51e3ad80ea441f0311b",
+        "ipAddresses": ["100.64.0.1"],
+        "name": "laptop",
+        "user": {
+          "id": "0",
+          "name": "",
+          "createdAt": "0001-01-01T00:00:00Z"
+        },
+        "lastSeen": "2026-10-20T06:57:04.655582262Z",
+        "lastSuccessfulUpdate": "2026-10-20T06:57:10.070299205Z",
+        "expiry": "0001-01-01T00:00:00Z",
+        "preAuthKey": null,
+        "createdAt": "2026-10-20T06:56:59.875215922Z",
+        "registerMethod": "REGISTER_METHOD_UNSPECIFIED",
+        "forcedTags": [],
+        "invalidTags": [],
+        "validTags": [],
+        "givenName": "laptop",
+        "online": true
+      },
+      "prefix": "0.0.0.0/0",
+      "advertised": true,
+      "enabled": false,
+      "isPrimary": false,
+      "createdAt": "2026-10-20T06:56:59.933656599Z",
+      "updatedAt": "2026-10-20T06:56:59.933656599Z",
+      "deletedAt": null
+    },
+    {
+      "id": "2",
+      "machine": {
+        "id": "1",
+        "machineKey": "99c497dcf4d37f2722c329d778010d21337c2d846d84385b64ad1c21299947b1",
+        "nodeKey": "f19d75ff734eef111ac3fdb38010a6d8f98af85da6e404a4e23ffca62e386ec1",
+        "discoKey": "9bc8603f55f50c60ea12e4aebeb125b3df91ca092e76f51e3ad80ea441f0311b",
+        "ipAddresses": ["100.64.0.1"],
+        "name": "laptop",
+        "user": {
+          "id": "0",
+          "name": "",
+          "createdAt": "0001-01-01T00:00:00Z"
+        },
+        "lastSeen": "2026-10-20T06:57:04.655582262Z",
+        "lastSuccessfulUpdate": "2026-10-20T06:57:10.070299205Z",
+        "expiry": "0001-01-01T00:00:00Z",
+        "preAuthKey": null,
+        "createdAt": "2026-10-20T06:56:59.875215922Z",
+        "registerMethod": "REGISTER_METHOD_UNSPECIFIED",
+        "forcedTags": [],
+        "invalidTags": [],
+        "validTags": [],
+        "givenName": "laptop",
+        "online": true
+      },
+      "prefix": "198.51.100.0/24",
+      "advertised": true,
+      "enabled": false,
+      "isPrimary": false,
+      "createdAt": "2026-10-20T06:56:59.957185714Z",
+      "updatedAt": "2026-10-20T06:56:59.957185714Z",
+      "deletedAt": null
+    },
+    {
+      "id": "3",
+      "machine": {
+        "id": "1",
+        "machineKey": "99c497dcf4d37f2722c329d778010d21337c2d846d84385b64ad1c21299947b1",
+        "nodeKey": "f19d75ff734eef111ac3fdb38010a6d8f98af85da6e404a4e23ffca62e386ec1",
+        "discoKey": "9bc8603f55f50c60ea12e4aebeb125b3df91ca092e76f51e3ad80ea441f0311b",
+        "ipAddresses": ["100.64.0.1"],
+        "name": "laptop",
+        "user": {
+          "id": "0",
+          "name": "",
+          "createdAt": "0001-01-01T00:00:00Z"
+        },
+        "lastSeen": "2026-10-20T06:57:04.655582262Z",
+        "lastSuccessfulUpdate": "2026-10-20T06:57:10.070299205Z",
+        "expiry": "0001-01-01T00:00:00Z",
+        "preAuthKey": null,
+        "createdAt": "2026-10-20T06:56:59.875215922Z",
+        "registerMethod": "REGISTER_METHOD_UNSPECIFIED",
+        "forcedTags": [],
+        "invalidTags": [],
+        "validTags": [],
+        "givenName": "laptop",
+        "online": true
+      },
+      "prefix": "::/0",
+      "advertised": true,
+      "enabled": false,
+      "isPrimary": false,
+      "createdAt": "2026-10-20T06:56:59.980752335Z",
+      "updatedAt": "2026-10-20T06:56:59.980752335Z",
+      "deletedAt": null
+    }
+  ]
+}

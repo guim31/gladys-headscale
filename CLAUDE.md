@@ -31,16 +31,19 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (src/app.js registers the handlers)
+src/app.js                        handlers registered before connect(), shared with the tests
+src/hub.js                        HeadscaleHub: timer, states, transports, scene events, report
+src/devices.js                    the server and machine devices, feature keys and names
+src/headscale/client.js           REST client (/api/v1, Bearer key), versions 0.22 to 0.29
+src/headscale/http.js             the one function that talks to the network (node:http/https)
+src/widgets.js                    the `machines` dashboard widget
+src/texts.js                      messages of the code, four languages
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+gladys-assistant-integration.json manifest: name, config_schema, actions, triggers, widget...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+test/helpers/fakeHeadscale.js     in-memory Headscale built on the real answers of test/fixtures
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +73,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, manifest texts, widget, feature
+  names, and `docs/{en,fr,de,es}.md`, kept in sync. `test/i18n.test.js` checks
+  it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -197,6 +202,40 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
 - Les filtres de scène ne font qu'égalité et appartenance : un seuil reste le travail d'un capteur.
 - **Les clés de widgets, de déclencheurs et d'actions sont figées une fois publiées.**
 - `gladys_version` `>=5.1.0` dès qu'il y a widgets, déclencheurs ou actions de scène.
+
+## Headscale (propre à ce dépôt)
+
+- **API vérifiée en vrai** (20/10/2026) sur `headscale/headscale` **0.22.3, 0.23.0, 0.26.1 et 0.29.5** en Docker, avec
+  des clients `tailscale/tailscale` (`TS_USERSPACE=true`, clé de pré-autorisation, `--login-server`), l'un annonçant
+  une route et un nœud de sortie. Réponses dans `test/fixtures/headscale/` (clés remplacées). Ce qu'on y a appris :
+  - 0.22 : `GET /api/v1/machine` → `{ machines }` ; 0.23+ : `GET /api/v1/node` → `{ nodes }` (l'autre répond 404
+    `{"code":5,"message":"Not Found"}`). Routes : `GET /api/v1/routes` jusqu'à 0.25 (`node` ou `machine` imbriqué,
+    `advertised`, `enabled` ; le `online` du nœud imbriqué est faux, ne pas le lire), puis dans le nœud dès 0.26
+    (`availableRoutes`, `approvedRoutes`, `subnetRoutes`), `/routes` en 404. 0.29 remplace `forcedTags`/`validTags`
+    par `tags`. Identifiants uint64 **en chaîne** (`"1"`). `GET /version` n'existe qu'en 0.29.
+  - Clé refusée : **401 en texte brut** `Unauthorized`. `/health` répond sans clé.
+  - `expiry` : `null` (0.26+) ou `0001-01-01T00:00:00Z` (avant) = n'expire pas. Un client arrêté **sans état
+    persistant** se déconnecte (logout) : `expiry` passe à l'heure du logout (0.22, 0.23) ou à
+    `1970-01-01T00:02:03Z` (0.26, `time.Unix(123)` du client Tailscale) : date passée, donc clé expirée (0 jour).
+  - `online` bascule dès que la connexion tombe ; `lastSeen` d'un nœud en ligne reste l'heure de connexion.
+  - Le nœud de sortie, ce sont deux routes `0.0.0.0/0` et `::/0` : comptées pour une.
+  - L'API renvoie `preAuthKey.key` (masqué `hskey-auth-…-***` en 0.29, **en clair en 0.22**) : ne jamais logger ni
+    stocker les réponses brutes.
+- Changer la clé, le filtre ou l'option TLS ne remet pas les machines hors ligne : seules celles absentes de la
+  lecture suivante passent à 0 (revue du 20/10).
+- Identités : serveur `server:headscale` (un seul serveur par installation), machine `machine:<id Headscale>`. La
+  fonctionnalité « La clé expire dans » (`duration/integer`, jours) n'existe que si la clé expire, « Adresses IP »
+  que si l'option est cochée : leur apparition fait proposer « Mettre à jour ».
+- `key_expiring` : franchissement d'un palier (30, 14, 7, 3, 1, 0 jours) **entre deux lectures**, sur le temps
+  restant continu ; un seul événement (le plus petit palier) si plusieurs sont franchis d'un coup. Rien n'est
+  mémorisé dans `/data` : un palier franchi pendant un arrêt est perdu (dit dans la doc). Un logout (expiration posée à une date passée) ne déclenche pas `key_expiring`, seulement
+  `machine_offline`. Jours comptés à l'arrondi supérieur (0 seulement une fois expirée), widget et rapport :
+  ≤ 7 jours. Filtre `days` en
+  `select` (chaîne), variable `days` en `number` : le cœur convertit chaque côté.
+- Test réel reproductible : config 0.23+ avec une carte DERP factice (`derp.paths`, région 900 en 192.0.2.1),
+  sinon Headscale refuse de démarrer (« initial DERPMap is empty ») ; 0.22 exige l'ancien format (`ip_prefixes`,
+  `db_type`, `dns_config`) et la commande `headscale serve` (pas d'entrypoint). Noms de conteneurs **sans point**
+  (`…-v0-26-1`) : un nom en `v0.26.1` n'est pas une URL valide pour `fetch`.
 
 ## Store
 
