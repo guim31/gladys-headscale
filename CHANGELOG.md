@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-20
+
 ### Added
 
 - The machines of your self-hosted Headscale server in Gladys (Headscale 0.22
@@ -28,4 +30,5 @@ the notes of the version's GitHub Release.
 - Feature names, messages, widget and documentation in English, French, German
   and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-headscale/commits/main
+[Unreleased]: https://github.com/guim31/gladys-headscale/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-headscale/releases/tag/v1.0.0
