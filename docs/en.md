@@ -121,7 +121,7 @@ name). They give the variables **Machine name** and **Headscale user**, plus
 reading after a start or a change of configuration, nor for a machine that
 just appeared: the previous state is unknown. The steps of the key are seen
 while the integration runs: a step crossed while it was stopped is not sent
-afterwards.
+afterwards. A logout (which expires the key in Headscale) only fires **Headscale machine offline**.
 
 ### Scene ideas
 
@@ -149,6 +149,7 @@ afterwards.
 ## Limits
 
 - One Headscale server per installation of the integration.
+- Gladys accepts 300 states per minute: on a tailnet of more than about 50 machines, the first values take a few readings to arrive.
 - Read only: the integration does not approve routes, renew keys nor delete
   machines. That stays with the `headscale` command or your web interface.
 - **Online** is what Headscale says: a machine counts online while its

@@ -143,8 +143,9 @@ export class HeadscaleHub {
     const signature = JSON.stringify([config.url, config.apiKey, config.insecure, config.users]);
     if (signature !== this.signature) {
       // Another server, key or set of users: start over, without scene events
-      // for what the first reading finds. The machines read so far may not be
-      // read again: they are shown offline (no event).
+      // for what the first reading finds. The machines read so far stay until
+      // that reading: only those it no longer lists are shown offline, so a
+      // new API key does not make every machine blink offline.
       this.signature = signature;
       this.client =
         config.url && config.apiKey
@@ -153,9 +154,6 @@ export class HeadscaleHub {
               this.request,
             )
           : null;
-      await this.forget(this.machines);
-      this.machines = [];
-      this.total = 0;
       this.read = false;
       this.error = null;
       this.published.clear();
@@ -297,7 +295,10 @@ export class HeadscaleHub {
         events.push([machine.online ? TRIGGERS.ONLINE : TRIGGERS.OFFLINE, machine, {}]);
       }
       const days = crossedThreshold(remaining(prev, this.readAt), remaining(machine, now));
-      if (days !== null) {
+      // A logout sets the expiry to a past date (1970 for 0.26): that is a
+      // machine leaving, already told by machine_offline, not a key to renew.
+      const loggedOut = machine.expiry !== prev.expiry && machine.expiry <= now;
+      if (days !== null && !loggedOut) {
         events.push([
           TRIGGERS.KEY_EXPIRING,
           machine,
@@ -571,11 +572,11 @@ export class HeadscaleHub {
     await this.poll();
   }
 
-  /** Machines whose key expires within EXPIRY_WARNING_DAYS (expired ones included). */
+  /** Machines whose key expires within EXPIRY_WARNING_DAYS days (expired ones included). */
   expiringSoon(now = this.now()) {
     return this.machines.filter((machine) => {
       const days = daysLeft(machine, now);
-      return days !== null && days < EXPIRY_WARNING_DAYS;
+      return days !== null && days <= EXPIRY_WARNING_DAYS;
     });
   }
 

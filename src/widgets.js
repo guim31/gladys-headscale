@@ -83,7 +83,7 @@ export function ago(time, now, language) {
 
 const expiring = (machine, now) => {
   const days = daysLeft(machine, now);
-  return days !== null && days < EXPIRY_WARNING_DAYS;
+  return days !== null && days <= EXPIRY_WARNING_DAYS;
 };
 
 /** Order: key expiring (soonest first), online (by name), offline (latest seen first). */

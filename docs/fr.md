@@ -128,7 +128,7 @@ donnent les variables **Nom de la machine** et **Utilisateur Headscale**, plus
 envoyé à la première lecture après un démarrage ou un changement de
 configuration, ni pour une machine qui vient d'apparaître : l'état précédent est
 inconnu. Les étapes de la clé sont vues pendant que l'intégration tourne : une
-étape franchie pendant qu'elle était arrêtée n'est pas envoyée après coup.
+étape franchie pendant qu'elle était arrêtée n'est pas envoyée après coup. Une déconnexion (logout, qui fait expirer la clé dans Headscale) ne déclenche que **Machine Headscale hors ligne**.
 
 ### Idées de scènes
 
@@ -159,6 +159,7 @@ inconnu. Les étapes de la clé sont vues pendant que l'intégration tourne : un
 ## Limites
 
 - Un seul serveur Headscale par installation de l'intégration.
+- Gladys accepte 300 états par minute : sur un tailnet de plus d'une cinquantaine de machines, les premières valeurs mettent quelques lectures à arriver.
 - Lecture seule : l'intégration n'approuve pas de route, ne renouvelle pas de
   clé et ne supprime pas de machine. Cela reste le travail de la commande
   `headscale` ou de votre interface web.

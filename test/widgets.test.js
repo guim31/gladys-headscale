@@ -35,14 +35,14 @@ test('two tiles and one row per machine: expiring keys first, then online, then 
       ['nas', '2 days ago', 'neutral'],
     ],
   );
-  // Six days left: the phone goes first, in orange; expired, in red.
+  // Within 7 days: the phone goes first, in orange; expired, in red.
   w.clock.advance(24 * 3_600_000);
   await w.hub.poll();
   [, , status] = (await content(w, { language: 'fr' })).components;
   assert.deepEqual(status.items[0], {
     label: 'phone',
     icon: 'key',
-    value: 'Clé : encore 6 j',
+    value: 'Clé : encore 7 j',
     color: 'warning',
   });
   w.clock.advance(7 * 24 * 3_600_000);

@@ -127,12 +127,12 @@ export function formatDate(time, language) {
   );
 }
 
-/** Whole days left before the key expires, 0 once expired; null: never expires. */
+/** Days left before the key expires, started days counted (0 only once expired); null: never expires. */
 export function daysLeft(machine, now) {
   if (machine.expiry === null) {
     return null;
   }
-  return Math.min(MAX_DAYS, Math.max(0, Math.floor((machine.expiry - now) / DAY_MS)));
+  return Math.min(MAX_DAYS, Math.max(0, Math.ceil((machine.expiry - now) / DAY_MS)));
 }
 
 // Order = display order in Gladys. `when`: the feature exists only then.

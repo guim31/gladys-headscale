@@ -37,7 +37,11 @@ const TLS_CODES = new Set([
   'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
   'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
   'CERT_HAS_EXPIRED',
+  'CERT_NOT_YET_VALID',
   'ERR_TLS_CERT_ALTNAME_INVALID',
+  // https:// on a port that speaks http.
+  'ERR_SSL_WRONG_VERSION_NUMBER',
+  'EPROTO',
 ]);
 
 export class HeadscaleError extends Error {

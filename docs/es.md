@@ -126,7 +126,7 @@ variables **Nombre de la máquina** y **Usuario de Headscale**, y además
 evento en la primera lectura tras un arranque o un cambio de configuración, ni
 para una máquina que acaba de aparecer: el estado anterior es desconocido. Las
 etapas de la clave se detectan mientras la integración funciona: una etapa
-superada mientras estaba detenida no se envía después.
+superada mientras estaba detenida no se envía después. Un cierre de sesión (logout, que hace caducar la clave en Headscale) solo dispara **Máquina Headscale fuera de línea**.
 
 ### Ideas de escenas
 
@@ -157,6 +157,7 @@ superada mientras estaba detenida no se envía después.
 ## Límites
 
 - Un único servidor Headscale por instalación de la integración.
+- Gladys acepta 300 estados por minuto: en un tailnet de más de unas 50 máquinas, los primeros valores tardan algunas lecturas en llegar.
 - Solo lectura: la integración no aprueba rutas, no renueva claves ni borra
   máquinas. Eso sigue siendo cosa del comando `headscale` o de su interfaz web.
 - **En línea** es lo que dice Headscale: una máquina está en línea mientras su

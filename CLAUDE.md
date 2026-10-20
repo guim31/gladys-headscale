@@ -221,12 +221,16 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
   - Le nœud de sortie, ce sont deux routes `0.0.0.0/0` et `::/0` : comptées pour une.
   - L'API renvoie `preAuthKey.key` (masqué `hskey-auth-…-***` en 0.29, **en clair en 0.22**) : ne jamais logger ni
     stocker les réponses brutes.
+- Changer la clé, le filtre ou l'option TLS ne remet pas les machines hors ligne : seules celles absentes de la
+  lecture suivante passent à 0 (revue du 20/10).
 - Identités : serveur `server:headscale` (un seul serveur par installation), machine `machine:<id Headscale>`. La
   fonctionnalité « La clé expire dans » (`duration/integer`, jours) n'existe que si la clé expire, « Adresses IP »
   que si l'option est cochée : leur apparition fait proposer « Mettre à jour ».
 - `key_expiring` : franchissement d'un palier (30, 14, 7, 3, 1, 0 jours) **entre deux lectures**, sur le temps
   restant continu ; un seul événement (le plus petit palier) si plusieurs sont franchis d'un coup. Rien n'est
-  mémorisé dans `/data` : un palier franchi pendant un arrêt est perdu (dit dans la doc). Filtre `days` en
+  mémorisé dans `/data` : un palier franchi pendant un arrêt est perdu (dit dans la doc). Un logout (expiration posée à une date passée) ne déclenche pas `key_expiring`, seulement
+  `machine_offline`. Jours comptés à l'arrondi supérieur (0 seulement une fois expirée), widget et rapport :
+  ≤ 7 jours. Filtre `days` en
   `select` (chaîne), variable `days` en `number` : le cœur convertit chaque côté.
 - Test réel reproductible : config 0.23+ avec une carte DERP factice (`derp.paths`, région 900 en 192.0.2.1),
   sinon Headscale refuse de démarrer (« initial DERPMap is empty ») ; 0.22 exige l'ancien format (`ip_prefixes`,

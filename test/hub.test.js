@@ -38,7 +38,8 @@ test('the first reading publishes devices, states and the connection, without sc
   assert.match(w.fake.lastState(laptop.feature(FEATURE_KEYS.LAST_SEEN)), /\d+\/\d+\/\d+/);
   assert.equal(w.fake.lastState(laptop.feature(FEATURE_KEYS.KEY_EXPIRY)), undefined);
   const phone = machineIdsOf(w.gladys, '2');
-  assert.equal(w.fake.lastState(phone.feature(FEATURE_KEYS.KEY_EXPIRY)), 7);
+  // 7 days and 1 hour left: the 8th day has started.
+  assert.equal(w.fake.lastState(phone.feature(FEATURE_KEYS.KEY_EXPIRY)), 8);
   assert.equal(w.fake.lastState(phone.feature(FEATURE_KEYS.IPS)), undefined, 'IPs off by default');
   const features = (name) =>
     w.fake.discoveredDevices
@@ -101,7 +102,7 @@ test('key_expiring fires once per threshold crossed, with the days left', async 
   assert.equal(fired[0].data.machine, 'phone');
   assert.equal(fired[0].data.user, 'bob');
   assert.match(fired[0].data.expiry, /10\/27\/26/);
-  assert.equal(w.fake.lastState(machineIdsOf(w.gladys, '2').feature(FEATURE_KEYS.KEY_EXPIRY)), 6);
+  assert.equal(w.fake.lastState(machineIdsOf(w.gladys, '2').feature(FEATURE_KEYS.KEY_EXPIRY)), 7);
   // Expired: days 0.
   w.clock.time = PHONE_EXPIRY + 60_000;
   await w.hub.poll();
@@ -316,9 +317,25 @@ for (const version of ['0.26', '0.23', '0.22']) {
     await w.hub.poll();
     assert.equal(w.fake.lastState(laptop.feature(FEATURE_KEYS.ONLINE)), 0);
     assert.equal(w.fake.lastState(laptop.feature(FEATURE_KEYS.KEY_EXPIRY)), 0);
-    assert.deepEqual(w.fake.sceneEvents.map((event) => [event.key, event.data.days]).sort(), [
-      [TRIGGERS.KEY_EXPIRING, 0],
-      [TRIGGERS.OFFLINE, undefined],
-    ]);
+    // The logout is a machine leaving, not a key to renew.
+    assert.deepEqual(
+      w.fake.sceneEvents.map((event) => event.key),
+      [TRIGGERS.OFFLINE],
+    );
   });
 }
+
+test('a new API key or users filter does not make the machines blink offline', async (t) => {
+  const w = await createWorld();
+  t.after(() => w.app.stop());
+  const online = machineIdsOf(w.gladys, '1').feature(FEATURE_KEYS.ONLINE);
+  const before = w.fake.states.length;
+  await w.fake.configUpdated({ ...CONFIG, users: 'alice, bob' });
+  await w.fake.configUpdated({ ...CONFIG, insecure: true });
+  const sent = w.fake.states.slice(before).filter((s) => s.device_feature_external_id === online);
+  assert.ok(sent.every((state) => state.state === 1));
+  // A user no longer followed: its machines are shown offline, without event.
+  await w.fake.configUpdated({ ...CONFIG, users: 'bob' });
+  assert.equal(w.fake.lastState(online), 0);
+  assert.deepEqual(w.fake.sceneEvents, []);
+});

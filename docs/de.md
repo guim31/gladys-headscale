@@ -128,7 +128,7 @@ der Konfiguration wird kein Ereignis gesendet, auch nicht für ein gerade
 aufgetauchtes Gerät: Der vorherige Zustand ist unbekannt. Die Stufen des
 Schlüssels werden erkannt, während die Integration läuft: Eine Stufe, die
 überschritten wurde, während sie gestoppt war, wird nicht nachträglich
-gesendet.
+gesendet. Eine Abmeldung (Logout, die den Schlüssel in Headscale ablaufen lässt) löst nur **Headscale-Gerät offline** aus.
 
 ### Szenen-Ideen
 
@@ -159,6 +159,7 @@ gesendet.
 ## Grenzen
 
 - Ein Headscale-Server pro Installation der Integration.
+- Gladys nimmt 300 Zustände pro Minute an: In einem Tailnet mit mehr als etwa 50 Geräten brauchen die ersten Werte einige Abfragen.
 - Nur Lesen: Die Integration genehmigt keine Routen, erneuert keine Schlüssel
   und löscht keine Geräte. Das bleibt Sache des Befehls `headscale` oder deiner
   Weboberfläche.
