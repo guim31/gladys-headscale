@@ -99,6 +99,9 @@ fixtures. See [`CLAUDE.md`](CLAUDE.md) for the project rules.
   Font and its contributors: this integration only talks to its REST API; no
   code was copied. The API model comes from its OpenAPI files
   (`gen/openapiv2`).
+- The cover shows the official Headscale logo, from
+  [`docs/assets/logo`](https://github.com/juanfont/headscale/tree/main/docs/assets/logo)
+  of the Headscale repository (BSD-3-Clause).
 - The architecture and the conformity tests follow
   [gladys-zerotier](https://github.com/guim31/gladys-zerotier) and
   [gladys-wled](https://github.com/guim31/gladys-wled).

@@ -184,3 +184,12 @@ test('the catalog description holds 10 to 100 characters per language', () => {
     );
   }
 });
+
+test('index.js only imports files that exist (the Docker image runs it, no test does)', async () => {
+  const source = await readFile(new URL('../index.js', import.meta.url), 'utf8');
+  const relative = [...source.matchAll(/from '(\.[^']+)'/g)].map((match) => match[1]);
+  assert.ok(relative.length > 0);
+  for (const path of relative) {
+    await assert.doesNotReject(readFile(new URL(`../${path}`, import.meta.url)), path);
+  }
+});
